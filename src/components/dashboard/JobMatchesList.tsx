@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +35,8 @@ const DATE_LABEL_TO_MS    = Object.fromEntries(DATE_FILTERS.map(f => [f.label, f
 interface JobMatchesListProps {
   initialMatches: JobMatchWithListing[]
   onMatchesUpdate?: (matches: JobMatchWithListing[]) => void
+  /** Called when a scrape finishes with background jobs still running — arg is current match count */
+  onBgScrapeStarted?: (knownCount: number) => void
 }
 
 const PLATFORM_STYLES: Record<string, { label: string; class: string }> = {
@@ -71,7 +73,7 @@ function ScoreRing({ score }: { score: number }) {
   )
 }
 
-export function JobMatchesList({ initialMatches, onMatchesUpdate }: JobMatchesListProps) {
+export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStarted }: JobMatchesListProps) {
   const [matches, setMatches] = useState<JobMatchWithListing[]>(initialMatches)
   const [scraping, setScraping] = useState(false)
   const [filter, setFilter] = useState<FilterTier>('all')
@@ -81,48 +83,10 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate }: JobMatchesLi
   const [progressResult, setProgressResult] = useState<DebugInfo | null>(null)
   const [selected, setSelected] = useState<JobMatchWithListing | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [bgPolling, setBgPolling] = useState(false)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
   function updateMatches(m: JobMatchWithListing[]) {
     setMatches(m)
     onMatchesUpdate?.(m)
   }
-
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
-    setBgPolling(false)
-  }, [])
-
-  const startBackgroundPolling = useCallback((knownCount: number) => {
-    stopPolling()
-    setBgPolling(true)
-    let attempts = 0
-    const MAX = 18           // 18 × 5 s = 90 s timeout
-    const INTERVAL = 5000
-
-    pollRef.current = setInterval(async () => {
-      attempts++
-      if (attempts > MAX) { stopPolling(); return }
-
-      try {
-        const res = await fetch('/api/jobs/scrape', { method: 'GET' })
-        if (!res.ok) return
-        const data = await res.json()
-        const fresh: JobMatchWithListing[] = data.matches ?? []
-
-        if (fresh.length > knownCount) {
-          const diff = fresh.length - knownCount
-          stopPolling()
-          updateMatches(fresh)
-          toast.success(
-            `+${diff} more job${diff !== 1 ? 's' : ''} found in background!`,
-            { description: `Total: ${fresh.length} matches now in your list.` }
-          )
-        }
-      } catch { /* silent */ }
-    }, INTERVAL)
-  }, [stopPolling]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     const f = { top: [90, 101], good: [80, 90], partial: [70, 80] }
@@ -187,8 +151,8 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate }: JobMatchesLi
           `${matchCount} job${matchCount !== 1 ? 's' : ''} matched!`,
           { description: bg > 0 ? `Scoring ${bg} more in background — list will update automatically.` : undefined }
         )
-        // Start polling for background batch results
-        if (bg > 0) startBackgroundPolling(matchCount)
+        // Delegate polling to the shell so it works on any tab
+        if (bg > 0) onBgScrapeStarted?.(matchCount)
       }
     } catch {
       toast.error('Scan failed. Check your connection.')
@@ -251,13 +215,6 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate }: JobMatchesLi
             </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* Background polling indicator */}
-            {bgPolling && !scraping && (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                Scoring in background…
-              </span>
-            )}
             <Button
               onClick={handleRefresh}
               disabled={scraping}

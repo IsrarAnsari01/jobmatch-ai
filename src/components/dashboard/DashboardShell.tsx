@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { LayoutDashboard, Briefcase } from 'lucide-react'
+import { useState, useRef, useCallback } from 'react'
+import { LayoutDashboard, Briefcase, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DashboardOverview } from './DashboardOverview'
 import { JobMatchesList } from './JobMatchesList'
+import { BgScrapeAlert } from './BgScrapeAlert'
 import type { JobMatchWithListing } from '@/types/database'
 
 interface Props {
@@ -21,8 +22,43 @@ type Tab = 'overview' | 'jobs'
 
 export function DashboardShell({ firstName, insights, initialMatches }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
-  // Lifted state — updated by JobMatchesList after refresh so sidebar badge stays in sync
   const [matches, setMatches] = useState<JobMatchWithListing[]>(initialMatches)
+  const [bgPolling, setBgPolling] = useState(false)
+  const [bgNewMatches, setBgNewMatches] = useState<JobMatchWithListing[] | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    setBgPolling(false)
+  }, [])
+
+  /** Call this after any scrape that returned background > 0 */
+  const startBackgroundPolling = useCallback((knownCount: number) => {
+    stopPolling()
+    setBgPolling(true)
+    setBgNewMatches(null)
+    let attempts = 0
+    const MAX = 18   // 18 × 5 s = 90 s
+
+    pollRef.current = setInterval(async () => {
+      attempts++
+      if (attempts > MAX) { stopPolling(); return }
+
+      try {
+        const res = await fetch('/api/jobs/scrape', { method: 'GET' })
+        if (!res.ok) return
+        const data = await res.json()
+        const fresh: JobMatchWithListing[] = data.matches ?? []
+
+        if (fresh.length > knownCount) {
+          const added = fresh.slice(knownCount)   // only the newly added ones
+          stopPolling()
+          setMatches(fresh)
+          setBgNewMatches(added)
+        }
+      } catch { /* silent */ }
+    }, 5000)
+  }, [stopPolling])
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col sm:flex-row gap-6 items-start">
@@ -58,14 +94,29 @@ export function DashboardShell({ firstName, insights, initialMatches }: Props) {
                 <p className="text-sm font-semibold leading-none">{label}</p>
                 <p className="text-xs text-muted-foreground mt-1">{desc}</p>
               </div>
-              {/* Live badge — updates whenever JobMatchesList refreshes */}
-              {key === 'jobs' && matches.length > 0 && (
-                <span className="ml-auto shrink-0 text-xs font-bold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
-                  {matches.length}
-                </span>
+              {/* Badge — jobs count + pulsing bg indicator */}
+              {key === 'jobs' && (
+                <div className="flex items-center gap-1">
+                  {bgPolling && (
+                    <Loader2 className="h-3 w-3 text-primary animate-spin" />
+                  )}
+                  {matches.length > 0 && (
+                    <span className="text-xs font-bold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                      {matches.length}
+                    </span>
+                  )}
+                </div>
               )}
             </button>
           ))}
+
+          {/* Global bg polling indicator */}
+          {bgPolling && (
+            <div className="mt-2 mx-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 border">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping shrink-0" />
+              Scoring more jobs…
+            </div>
+          )}
         </nav>
       </aside>
 
@@ -87,9 +138,18 @@ export function DashboardShell({ firstName, insights, initialMatches }: Props) {
                 All roles scored 70+ against your resume
               </p>
             </div>
+
+            {/* Persistent background-scoring indicator */}
+            <BgScrapeAlert
+              active={bgPolling}
+              newMatches={bgNewMatches}
+              onDismiss={() => setBgNewMatches(null)}
+            />
+
             <JobMatchesList
               initialMatches={matches}
               onMatchesUpdate={setMatches}
+              onBgScrapeStarted={startBackgroundPolling}
             />
           </div>
         )}

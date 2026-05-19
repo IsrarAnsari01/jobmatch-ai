@@ -30,9 +30,14 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute =
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
-    pathname.startsWith('/verify')
+    pathname.startsWith('/verify') ||
+    pathname.startsWith('/forgot-password')
+    // NOTE: /reset-password intentionally NOT here — needs an active session to update password
+
   const isProtectedRoute =
-    pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/reset-password')   // requires session
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()

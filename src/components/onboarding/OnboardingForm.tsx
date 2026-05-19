@@ -16,7 +16,7 @@ interface OnboardingFormProps {
   userId: string
 }
 
-type Step = 'upload' | 'analyzing' | 'done'
+type Step = 'upload' | 'analyzing' | 'scanning' | 'done'
 
 interface Insights {
   skills: string[]
@@ -106,16 +106,20 @@ export function OnboardingForm({ userId }: OnboardingFormProps) {
 
       const data = await response.json()
       tick(95)
+      setInsights(data.insights)
 
-      // Kick off a background job scrape so fresh results load immediately on dashboard
-      fetch('/api/jobs/scrape', { method: 'POST' }).catch(() => {/* non-blocking */})
+      // ── Step 4: scan job boards with the new resume ──
+      setStep('scanning')
+      setProgress(0)
+
+      try {
+        await fetch('/api/jobs/scrape', { method: 'POST' })
+      } catch {
+        // Non-critical — proceed even if scrape fails
+      }
 
       tick(100)
-
-      setTimeout(() => {
-        setInsights(data.insights)
-        setStep('done')
-      }, 400)
+      setTimeout(() => setStep('done'), 300)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStep('upload')
@@ -190,29 +194,62 @@ export function OnboardingForm({ userId }: OnboardingFormProps) {
     )
   }
 
-  /* ── Analyzing state ── */
-  if (step === 'analyzing') {
+  /* ── Analyzing / Scanning states ── */
+  if (step === 'analyzing' || step === 'scanning') {
+    const isScanning = step === 'scanning'
     return (
       <div className="rounded-2xl border bg-background p-8">
         <div className="flex flex-col items-center gap-6 text-center">
+          {/* Step indicators */}
+          <div className="flex items-center gap-2 text-xs">
+            {[
+              { label: 'Upload',   done: true },
+              { label: 'Analyze',  done: isScanning },
+              { label: 'Scan jobs', done: false, active: isScanning },
+            ].map(({ label, done, active }, i) => (
+              <div key={label} className="flex items-center gap-2">
+                {i > 0 && <div className={`h-px w-6 ${done ? 'bg-primary' : 'bg-border'}`} />}
+                <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full border font-medium transition-all ${
+                  done ? 'bg-primary/10 border-primary/30 text-primary'
+                  : active ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-muted border-border text-muted-foreground'
+                }`}>
+                  {done && <CheckCircle2 className="h-3 w-3" />}
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-2xl bg-primary/10 animate-pulse" />
             <div className="relative w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center">
-              <Brain className="h-8 w-8 text-primary" />
+              {isScanning
+                ? <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+                : <Brain className="h-8 w-8 text-primary" />
+              }
             </div>
           </div>
 
           <div className="space-y-1">
-            <h3 className="font-semibold">Analyzing your resume</h3>
-            <p className="text-sm text-muted-foreground">{currentMsg}</p>
+            <h3 className="font-semibold">
+              {isScanning ? 'Scanning job boards…' : 'Analyzing your resume'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {isScanning
+                ? 'Fetching jobs from RemoteOK, Jobicy, WWR and more — scoring with AI…'
+                : currentMsg}
+            </p>
           </div>
 
           <div className="w-full space-y-2">
-            <Progress value={progress} className="h-1.5" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Processing</span>
-              <span>{progress}%</span>
-            </div>
+            <Progress value={isScanning ? null : progress} className="h-1.5" />
+            {!isScanning && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Processing</span>
+                <span>{progress}%</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
