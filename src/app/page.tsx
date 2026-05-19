@@ -1,65 +1,174 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import {
+  BrainCircuit, FileText, MailCheck, Star, ArrowRight,
+  Sparkles, Shield, Zap, TrendingUp
+} from 'lucide-react'
 
-export default function Home() {
+const features = [
+  { icon: FileText,    title: 'Resume Intelligence', desc: 'GPT-4o extracts every skill, role, and keyword — no manual input.', color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950' },
+  { icon: Star,        title: '90+ Match Filter',    desc: 'Only roles where you score 70 or above reach your dashboard.',      color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950' },
+  { icon: MailCheck,   title: 'Direct Job Links',    desc: 'One click takes you straight to the job posting to apply.',          color: 'text-green-500',   bg: 'bg-green-50 dark:bg-green-950' },
+  { icon: Zap,         title: 'Multi-Platform',      desc: 'Scans RemoteOK, Jobicy, LinkedIn, Indeed, and Glassdoor.',           color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-950' },
+  { icon: Shield,      title: 'Private & Secure',    desc: 'Your resume is encrypted at rest. Never sold or shared.',            color: 'text-indigo-500',  bg: 'bg-indigo-50 dark:bg-indigo-950' },
+  { icon: TrendingUp,  title: 'Match Insights',      desc: 'See exactly why you matched — skill overlap, experience fit.',       color: 'text-rose-500',    bg: 'bg-rose-50 dark:bg-rose-950' },
+]
+
+const stats = [
+  { value: '5+', label: 'Job boards scanned' },
+  { value: '70+', label: 'Minimum match score' },
+  { value: 'GPT-4o', label: 'AI engine' },
+  { value: 'Free', label: 'No credit card' },
+]
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-background">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+              <BrainCircuit className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-bold">JobMatch AI</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'hidden sm:inline-flex')}>
+              Sign in
+            </Link>
+            <Link href="/signup" className={cn(buttonVariants({ size: 'sm' }))}>
+              Get started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/6 rounded-full blur-3xl" />
+        </div>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-16 sm:pb-24 text-center">
+          <Badge variant="secondary" className="mb-5 gap-1.5 px-3 py-1">
+            <Sparkles className="h-3.5 w-3.5" />Powered by GPT-4o
+          </Badge>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-3xl mx-auto leading-[1.1]">
+            Stop applying blindly.
+            <br />
+            <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
+              Find jobs that fit you.
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Upload your resume once. Our AI scans multiple job boards and surfaces
+            only the roles where you score 70 or above — no noise.
           </p>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), 'h-11 px-8 font-semibold w-full sm:w-auto gap-2')}>
+              Start for free <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-8 font-semibold w-full sm:w-auto')}>
+              Sign in
+            </Link>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">No credit card · Free to use</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Stats */}
+      <section className="border-y bg-muted/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
+          {stats.map(({ value, label }) => (
+            <div key={label}>
+              <div className="text-xl sm:text-2xl font-extrabold">{value}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground mt-1">{label}</div>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* How it works */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold">How it works</h2>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">Three steps from resume to interview</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+          {[
+            { step: '01', title: 'Upload Resume', desc: 'Drop your PDF. GPT-4o extracts skills, experience, and target roles in seconds.', icon: FileText },
+            { step: '02', title: 'AI Scans Boards', desc: 'We search RemoteOK, Jobicy, LinkedIn, Indeed, and Glassdoor using your profile.', icon: BrainCircuit },
+            { step: '03', title: 'Apply to Best Fits', desc: 'See scored matches. Click any card to view full details and apply directly.', icon: MailCheck },
+          ].map(({ step, title, desc, icon: Icon }) => (
+            <div key={step} className="flex flex-col items-center text-center gap-4">
+              <div className="relative w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Icon className="h-6 w-6 text-primary" />
+                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                  {step.replace('0', '')}
+                </span>
+              </div>
+              <div>
+                <h3 className="font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="bg-muted/20 border-y">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold">Everything you need</h2>
+            <p className="text-muted-foreground mt-2 text-sm">Built for serious job seekers</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map(({ icon: Icon, title, desc, color, bg }) => (
+              <div key={title} className="bg-background rounded-2xl border p-5 hover:shadow-md transition-shadow">
+                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center mb-3', bg)}>
+                  <Icon className={cn('h-4.5 w-4.5', color)} />
+                </div>
+                <h3 className="font-semibold text-sm mb-1">{title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+        <div className="relative bg-gradient-to-br from-slate-900 to-indigo-900 rounded-3xl px-6 sm:px-12 py-12 sm:py-16 text-center overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
+          </div>
+          <div className="relative space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Ready to find your next role?</h2>
+            <p className="text-slate-300 max-w-md mx-auto text-sm sm:text-base">
+              Upload your resume and get matched with scored jobs from across the web in under a minute.
+            </p>
+            <Link href="/signup" className={cn(buttonVariants({ size: 'lg' }), 'h-11 px-8 font-semibold bg-white text-slate-900 hover:bg-slate-100 gap-2 mt-2 inline-flex')}>
+              Get started free <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <BrainCircuit className="h-3.5 w-3.5" />
+            <span className="font-semibold">JobMatch AI</span>
+          </div>
+          <p>Built with Next.js, Supabase &amp; GPT-4o</p>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
