@@ -66,12 +66,23 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Platform logos */}
+        {/* Platforms */}
         <div className="relative">
-          <p className="text-slate-500 text-xs mb-3">Jobs sourced from</p>
-          <div className="flex items-center gap-4">
-            {['LinkedIn', 'Indeed', 'Glassdoor', 'ZipRecruiter'].map((name) => (
-              <span key={name} className="text-slate-400 text-sm font-medium">{name}</span>
+          <p className="text-slate-500 text-xs mb-3">40+ jobs per refresh · sourced from</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+            {[
+              { name: 'RemoteOK',       color: 'bg-cyan-400' },
+              { name: 'Jobicy',         color: 'bg-teal-400' },
+              { name: 'WWR',            color: 'bg-lime-400' },
+              { name: 'WorkNomads',     color: 'bg-sky-400' },
+              { name: 'Himalayas',      color: 'bg-violet-400' },
+              { name: 'Arbeitnow',      color: 'bg-rose-400' },
+              { name: 'Remotive',       color: 'bg-fuchsia-400' },
+            ].map(({ name, color }) => (
+              <span key={name} className="flex items-center gap-1.5 text-slate-300 text-xs font-medium">
+                <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
+                {name}
+              </span>
             ))}
           </div>
         </div>

@@ -10,11 +10,13 @@ interface ScrapeProgressProps {
 }
 
 const SOURCES = [
-  { label: 'RemoteOK',      color: 'bg-cyan-500' },
-  { label: 'Jobicy',        color: 'bg-teal-500' },
-  { label: 'We Work Remotely', color: 'bg-lime-500' },
-  { label: 'Working Nomads', color: 'bg-sky-500' },
-  { label: 'Himalayas',     color: 'bg-violet-500' },
+  { label: 'RemoteOK',       color: 'bg-cyan-500' },
+  { label: 'Jobicy',         color: 'bg-teal-500' },
+  { label: 'WWR',            color: 'bg-lime-500' },
+  { label: 'WorkNomads',     color: 'bg-sky-500' },
+  { label: 'Himalayas',      color: 'bg-violet-500' },
+  { label: 'Arbeitnow',      color: 'bg-rose-500' },
+  { label: 'Remotive',       color: 'bg-fuchsia-500' },
 ]
 
 const PHASES = [

@@ -35,8 +35,9 @@ const DATE_LABEL_TO_MS    = Object.fromEntries(DATE_FILTERS.map(f => [f.label, f
 interface JobMatchesListProps {
   initialMatches: JobMatchWithListing[]
   onMatchesUpdate?: (matches: JobMatchWithListing[]) => void
-  /** Called when a scrape finishes with background jobs still running — arg is current match count */
   onBgScrapeStarted?: (knownCount: number) => void
+  appliedIds?: Set<string>
+  onApplied?: (jobListingId: string) => void
 }
 
 const PLATFORM_STYLES: Record<string, { label: string; class: string }> = {
@@ -49,6 +50,8 @@ const PLATFORM_STYLES: Record<string, { label: string; class: string }> = {
   weworkremotely: { label: 'WWR',           class: 'bg-lime-50 text-lime-700 border-lime-100 dark:bg-lime-950 dark:text-lime-300 dark:border-lime-800' },
   workingnomads:  { label: 'WorkNomads',    class: 'bg-sky-50 text-sky-700 border-sky-100 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800' },
   himalayas:      { label: 'Himalayas',     class: 'bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800' },
+  arbeitnow:      { label: 'Arbeitnow',     class: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800' },
+  remotive:       { label: 'Remotive',      class: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:border-fuchsia-800' },
 }
 
 type FilterTier = 'all' | 'top' | 'good' | 'partial'
@@ -73,7 +76,7 @@ function ScoreRing({ score }: { score: number }) {
   )
 }
 
-export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStarted }: JobMatchesListProps) {
+export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStarted, appliedIds = new Set(), onApplied }: JobMatchesListProps) {
   const [matches, setMatches] = useState<JobMatchWithListing[]>(initialMatches)
   const [scraping, setScraping] = useState(false)
   const [filter, setFilter] = useState<FilterTier>('all')
@@ -88,19 +91,25 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStar
     onMatchesUpdate?.(m)
   }
 
+  // Exclude already-applied jobs from the visible list
+  const unapplied = useMemo(
+    () => matches.filter(m => !appliedIds.has(m.job_listing_id)),
+    [matches, appliedIds]
+  )
+
   const filtered = useMemo(() => {
     const f = { top: [90, 101], good: [80, 90], partial: [70, 80] }
-    if (filter === 'all') return matches
+    if (filter === 'all') return unapplied
     const [min, max] = f[filter]
-    return matches.filter(m => m.score >= min && m.score < max)
-  }, [matches, filter])
+    return unapplied.filter(m => m.score >= min && m.score < max)
+  }, [unapplied, filter])
 
   const counts = useMemo(() => ({
-    all: matches.length,
-    top: matches.filter(m => m.score >= 90).length,
-    good: matches.filter(m => m.score >= 80 && m.score < 90).length,
-    partial: matches.filter(m => m.score >= 70 && m.score < 80).length,
-  }), [matches])
+    all:     unapplied.length,
+    top:     unapplied.filter(m => m.score >= 90).length,
+    good:    unapplied.filter(m => m.score >= 80 && m.score < 90).length,
+    partial: unapplied.filter(m => m.score >= 70 && m.score < 80).length,
+  }), [unapplied])
 
   function openDetail(match: JobMatchWithListing) {
     setSelected(match)
@@ -273,6 +282,7 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStar
         {!scraping && filtered.map((match) => {
           const job = match.job_listings
           const p = plt(job.platform)
+          const isApplied = appliedIds.has(match.job_listing_id)
           return (
             <button
               key={match.id}
@@ -291,6 +301,11 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStar
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold text-sm sm:text-base leading-snug">{job.title}</h3>
+                      {isApplied && (
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900 px-1.5 py-0.5 rounded-full shrink-0">
+                          <CheckCircle2 className="h-2.5 w-2.5" />Applied
+                        </span>
+                      )}
                       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs sm:text-sm text-muted-foreground flex-wrap">
@@ -344,7 +359,13 @@ export function JobMatchesList({ initialMatches, onMatchesUpdate, onBgScrapeStar
         )}
       </div>
 
-      <JobDetailSheet match={selected} open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      <JobDetailSheet
+        match={selected}
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        appliedIds={appliedIds}
+        onApplied={id => { onApplied?.(id) }}
+      />
     </>
   )
 }

@@ -54,6 +54,8 @@ export async function fetchJobsFromJSearch(
     fetchWWRJobs(since),
     fetchWorkingNomadsJobs(since),
     fetchHimalayasJobs(keywords, since),
+    fetchArbeitnowJobs(keywords, since),   // +200 jobs
+    fetchRemotiveJobs(keywords, since),    // +20 specialty jobs
   ])
 
   const jobs: ScrapedJob[] = []
@@ -206,7 +208,119 @@ async function fetchHimalayasJobs(keywords: string[], since: Date): Promise<Scra
     .filter(j => isRecent(j.postedAt, since))
 }
 
-// ─── 6. JSearch (optional) ───────────────────────────────────────────────────
+// ─── 6. Arbeitnow (free, no key, 100+ remote jobs) ────────────────────────────
+
+interface ArbeitnowJob {
+  title: string
+  company_name: string
+  location: string
+  description: string
+  url: string
+  tags: string[]
+  remote: boolean
+  created_at: number    // unix timestamp (seconds)
+}
+
+async function fetchArbeitnowJobs(keywords: string[], since: Date): Promise<ScrapedJob[]> {
+  const kw = keywords.map(k => k.toLowerCase())
+  const allJobs: ScrapedJob[] = []
+  const baseUrl = 'https://www.arbeitnow.com/api/job-board-api'
+  const headers = { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }
+
+  // Fetch 2 pages (200 jobs max) in parallel
+  const rawPages = await Promise.allSettled([
+    axios.get<{ data: ArbeitnowJob[] }>(`${baseUrl}?page=1`, { headers, timeout: 12000 }),
+    axios.get<{ data: ArbeitnowJob[] }>(`${baseUrl}?page=2`, { headers, timeout: 12000 }),
+  ])
+
+  // axios.get<T> → response.data is T, so response.data.data is the jobs array
+  const jobLists: ArbeitnowJob[][] = rawPages
+    .filter(r => r.status === 'fulfilled')
+    .map(r => (r as PromiseFulfilledResult<{ data: { data: ArbeitnowJob[] } }>).value.data.data ?? [])
+
+  for (const jobs of jobLists) {
+    for (const job of jobs) {
+      const postedAt = parseDate(job.created_at)
+      if (!isRecent(postedAt, since)) continue
+
+      // Keyword relevance check (title or tags match)
+      const tagStr = (job.tags ?? []).join(' ').toLowerCase()
+      const titleLower = job.title.toLowerCase()
+      const relevant = kw.some(k => titleLower.includes(k) || tagStr.includes(k))
+      if (!relevant) continue
+
+      allJobs.push({
+        title: job.title.trim(),
+        company: job.company_name.trim(),
+        location: job.location || 'Remote',
+        description: stripHtml(job.description ?? '').slice(0, 3000),
+        url: job.url,
+        hr_email: extractEmail(job.description ?? ''),
+        platform: 'arbeitnow',
+        postedAt,
+      })
+    }
+  }
+  return allJobs
+}
+
+// ─── 7. Remotive (free, no key, curated remote jobs) ─────────────────────────
+
+const REMOTIVE_CATEGORIES = [
+  'software-dev', 'devops-sysadmin', 'design', 'product', 'data', 'backend', 'frontend',
+]
+
+interface RemotiveJob {
+  title: string
+  company_name: string
+  candidate_required_location: string
+  description: string
+  url: string
+  publication_date: string
+}
+
+async function fetchRemotiveJobs(keywords: string[], since: Date): Promise<ScrapedJob[]> {
+  const kw = keywords.map(k => k.toLowerCase())
+  const allJobs: ScrapedJob[] = []
+
+  // Fetch multiple categories in parallel — Remotive filters well by category
+  const results = await Promise.allSettled(
+    REMOTIVE_CATEGORIES.slice(0, 3).map(cat =>
+      axios.get<{ jobs: RemotiveJob[]; 'job-count': number }>(
+        `https://remotive.com/api/remote-jobs?category=${cat}&limit=50`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 10000 }
+      )
+    )
+  )
+
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue
+    for (const job of r.value.data.jobs ?? []) {
+      const postedAt = parseDate(job.publication_date)
+      if (!isRecent(postedAt, since)) continue
+
+      // Keyword relevance check
+      const titleLower = job.title.toLowerCase()
+      const descLower = (job.description ?? '').toLowerCase().slice(0, 500)
+      const relevant = kw.some(k => titleLower.includes(k) || descLower.includes(k))
+      if (!relevant) continue
+
+      allJobs.push({
+        title: job.title.trim(),
+        company: job.company_name.trim(),
+        location: job.candidate_required_location || 'Remote',
+        description: stripHtml(job.description ?? '').slice(0, 3000),
+        url: job.url,
+        hr_email: extractEmail(job.description ?? ''),
+        platform: 'remotive',
+        postedAt,
+      })
+    }
+  }
+  return allJobs
+}
+
+// ─── 8. JSearch (optional) ───────────────────────────────────────────────────
 
 async function callJSearch(apiKey: string, keywords: string[], location: string, sinceMs: number): Promise<ScrapedJob[]> {
   const query = `${keywords.slice(0, 2).join(' OR ')} ${location}`.trim()

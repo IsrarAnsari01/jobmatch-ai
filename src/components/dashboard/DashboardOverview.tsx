@@ -16,15 +16,29 @@ interface Props {
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
-  remoteok: 'RemoteOK', jobicy: 'Jobicy', weworkremotely: 'WWR',
-  workingnomads: 'WorkNomads', himalayas: 'Himalayas',
-  linkedin: 'LinkedIn', indeed: 'Indeed', glassdoor: 'Glassdoor',
+  remoteok:       'RemoteOK',
+  jobicy:         'Jobicy',
+  weworkremotely: 'WWR',
+  workingnomads:  'WorkNomads',
+  himalayas:      'Himalayas',
+  arbeitnow:      'Arbeitnow',
+  remotive:       'Remotive',
+  linkedin:       'LinkedIn',
+  indeed:         'Indeed',
+  glassdoor:      'Glassdoor',
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  remoteok: '#06b6d4', jobicy: '#14b8a6', weworkremotely: '#84cc16',
-  workingnomads: '#0ea5e9', himalayas: '#8b5cf6',
-  linkedin: '#3b82f6', indeed: '#a855f7', glassdoor: '#22c55e',
+  remoteok:       '#06b6d4',   // cyan
+  jobicy:         '#14b8a6',   // teal
+  weworkremotely: '#84cc16',   // lime
+  workingnomads:  '#0ea5e9',   // sky
+  himalayas:      '#8b5cf6',   // violet
+  arbeitnow:      '#f43f5e',   // rose
+  remotive:       '#d946ef',   // fuchsia
+  linkedin:       '#3b82f6',   // blue
+  indeed:         '#a855f7',   // purple
+  glassdoor:      '#22c55e',   // green
 }
 
 const TIER_COLORS = ['#10b981', '#14b8a6', '#f59e0b']
